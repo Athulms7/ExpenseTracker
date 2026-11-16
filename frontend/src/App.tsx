@@ -1,45 +1,47 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { FormEvent } from 'react';
 import { ArrowDownLeft, ArrowUpRight, CalendarDays, ChevronDown, CircleHelp, CreditCard, Ellipsis, Filter, LayoutDashboard, Plus, Search, SlidersHorizontal, Sparkles, Wallet, X } from 'lucide-react';
-import ExpenseForm from './components/ExpenseForm.jsx';
-import ConfirmDeleteDialog from './components/ConfirmDeleteDialog.jsx';
-import AuthScreen from './features/auth/AuthScreen.jsx';
-import ExpenseTable from './features/expenses/ExpenseTable.jsx';
-import { CATEGORIES, CATEGORY_META } from './features/expenses/constants.js';
-import { apiRequest } from './lib/api.js';
-import { formatMoney, localToday } from './lib/format.js';
+import ExpenseForm from './components/ExpenseForm';
+import ConfirmDeleteDialog from './components/ConfirmDeleteDialog';
+import AuthScreen from './features/auth/AuthScreen';
+import ExpenseTable from './features/expenses/ExpenseTable';
+import { CATEGORIES, CATEGORY_META } from './features/expenses/constants';
+import { apiRequest, ApiError, errorMessage } from './lib/api';
+import { formatMoney, localToday } from './lib/format';
+import type { Category, Expense, ExpenseDraft, ExpenseFilters, ExpensePage, MonthlySummary, User } from './types';
 
-const emptyForm = () => ({ title: '', amount: '', category: 'Food', date: localToday(), note: '' });
+const emptyForm = (): ExpenseDraft => ({ title: '', amount: '', category: 'Food', date: localToday(), note: '' });
 const money = formatMoney;
-const noFilters = () => ({ category: '', date_from: '', date_to: '', title: '' });
+const noFilters = (): ExpenseFilters => ({ category: '', date_from: '', date_to: '', title: '' });
 const PAGE_SIZE = 10;
 
 export default function App() {
-  const [currentUser, setCurrentUser] = useState(null);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [authReady, setAuthReady] = useState(false);
   const [authError, setAuthError] = useState('');
-  const [expenses, setExpenses] = useState([]);
+  const [expenses, setExpenses] = useState<Expense[]>([]);
   const [totalExpenses, setTotalExpenses] = useState(0);
   const [offset, setOffset] = useState(0);
-  const [summary, setSummary] = useState({ total: 0, count: 0, categories: [] });
-  const [filters, setFilters] = useState({ category: '', date_from: '', date_to: '', title: '' });
+  const [summary, setSummary] = useState<MonthlySummary>({ month: '', total: 0, count: 0, categories: [] });
+  const [filters, setFilters] = useState<ExpenseFilters>(noFilters());
   const [loading, setLoading] = useState(true);
   const [hasLoaded, setHasLoaded] = useState(false);
   const [loadError, setLoadError] = useState('');
   const [notice, setNotice] = useState('');
   const [modal, setModal] = useState(false);
-  const [confirmExpense, setConfirmExpense] = useState(null);
+  const [confirmExpense, setConfirmExpense] = useState<Expense | null>(null);
   const [deleteError, setDeleteError] = useState('');
   const [deleting, setDeleting] = useState(false);
-  const [editing, setEditing] = useState(null);
-  const [form, setForm] = useState(emptyForm);
+  const [editing, setEditing] = useState<number | null>(null);
+  const [form, setForm] = useState<ExpenseDraft>(emptyForm);
   const [formError, setFormError] = useState('');
   const [saving, setSaving] = useState(false);
   const latestLoad = useRef(0);
-  const searchTimer = useRef(null);
+  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const monthName = useMemo(() => new Date().toLocaleDateString('en-IN', { month: 'long', year: 'numeric' }), []);
   const dayOfMonth = new Date().getDate();
-  const load = useCallback(async (activeFilters, requestedOffset = 0) => {
+  const load = useCallback(async (activeFilters: ExpenseFilters, requestedOffset = 0): Promise<void> => {
     const loadId = ++latestLoad.current;
     setLoading(true);
     try {
@@ -47,8 +49,8 @@ export default function App() {
       params.set('limit', String(PAGE_SIZE));
       params.set('offset', String(requestedOffset));
       const [initialPage, totals] = await Promise.all([
-        apiRequest(`/api/expenses?${params}`),
-        apiRequest('/api/summary/monthly'),
+        apiRequest<ExpensePage>(`/api/expenses?${params}`),
+        apiRequest<MonthlySummary>('/api/summary/monthly'),
       ]);
       if (loadId !== latestLoad.current) return;
 
@@ -58,7 +60,7 @@ export default function App() {
       if (page.total > 0 && requestedOffset >= page.total) {
         const lastOffset = Math.floor((page.total - 1) / page.limit) * page.limit;
         params.set('offset', String(lastOffset));
-        page = await apiRequest(`/api/expenses?${params}`);
+        page = await apiRequest<ExpensePage>(`/api/expenses?${params}`);
         if (loadId !== latestLoad.current) return;
       }
 
@@ -69,15 +71,15 @@ export default function App() {
       setHasLoaded(true);
       setLoadError('');
       setNotice('');
-    } catch (error) {
+    } catch (error: unknown) {
       if (loadId === latestLoad.current) {
         handleUnauthorized(error);
         setExpenses([]);
         setTotalExpenses(0);
-        setOffset(error.status === 401 ? 0 : requestedOffset);
+        setOffset(error instanceof ApiError && error.status === 401 ? 0 : requestedOffset);
         setHasLoaded(false);
-        setLoadError(error.message);
-        setNotice(error.message);
+        setLoadError(errorMessage(error));
+        setNotice(errorMessage(error));
       }
     } finally {
       if (loadId === latestLoad.current) setLoading(false);
@@ -86,9 +88,9 @@ export default function App() {
 
   useEffect(() => {
     let active = true;
-    apiRequest('/api/auth/me')
+    apiRequest<User>('/api/auth/me')
       .then(user => { if (active) setCurrentUser(user); })
-      .catch(error => { if (active && error.status !== 401) setAuthError(error.message); })
+      .catch((error: unknown) => { if (active && !(error instanceof ApiError && error.status === 401)) setAuthError(errorMessage(error)); })
       .finally(() => { if (active) setAuthReady(true); });
     return () => { active = false; };
   }, []);
@@ -104,47 +106,54 @@ export default function App() {
       load(defaults, 0);
     }
   }, [load, currentUser?.id]);
-  useEffect(() => () => clearTimeout(searchTimer.current), []);
+  useEffect(() => () => {
+    if (searchTimer.current !== null) clearTimeout(searchTimer.current);
+  }, []);
 
-  function handleUnauthorized(error) {
-    if (error.status === 401) {
+  function cancelScheduledSearch(): void {
+    if (searchTimer.current !== null) clearTimeout(searchTimer.current);
+    searchTimer.current = null;
+  }
+
+  function handleUnauthorized(error: unknown): void {
+    if (error instanceof ApiError && error.status === 401) {
       latestLoad.current += 1;
-      clearTimeout(searchTimer.current);
+      cancelScheduledSearch();
       setCurrentUser(null);
       setAuthError('Your session has expired. Please log in again.');
       setFilters(noFilters());
       setExpenses([]);
       setTotalExpenses(0);
       setOffset(0);
-      setSummary({ total: 0, count: 0, categories: [] });
+      setSummary({ month: '', total: 0, count: 0, categories: [] });
       setConfirmExpense(null);
       setModal(false);
     }
   }
-  async function logout() {
+  async function logout(): Promise<void> {
     try {
       await apiRequest('/api/auth/logout', { method: 'POST' });
       latestLoad.current += 1;
-      clearTimeout(searchTimer.current);
+      cancelScheduledSearch();
       setCurrentUser(null);
       setAuthError('');
       setFilters(noFilters());
       setExpenses([]);
       setTotalExpenses(0);
       setOffset(0);
-      setSummary({ total: 0, count: 0, categories: [] });
+      setSummary({ month: '', total: 0, count: 0, categories: [] });
       setNotice('');
-    } catch (error) { setNotice(error.message); }
+    } catch (error: unknown) { setNotice(errorMessage(error)); }
   }
 
-  function openAdd() { setEditing(null); setForm(emptyForm()); setFormError(''); setModal(true); }
-  function openEdit(expense) {
+  function openAdd(): void { setEditing(null); setForm(emptyForm()); setFormError(''); setModal(true); }
+  function openEdit(expense: Expense): void {
     setEditing(expense.id);
     setForm({ title: expense.title, amount: expense.amount, category: expense.category, date: expense.date, note: expense.note || '' });
     setFormError('');
     setModal(true);
   }
-  async function saveExpense(event) {
+  async function saveExpense(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
     setSaving(true);
     try {
@@ -155,10 +164,10 @@ export default function App() {
       });
       setModal(false);
       await load(filters, 0);
-    } catch (error) { handleUnauthorized(error); setFormError(error.message); }
+    } catch (error: unknown) { handleUnauthorized(error); setFormError(errorMessage(error)); }
     finally { setSaving(false); }
   }
-  async function deleteExpense() {
+  async function deleteExpense(): Promise<void> {
     if (!confirmExpense) return;
     setDeleting(true);
     setDeleteError('');
@@ -170,25 +179,26 @@ export default function App() {
         ? 0
         : Math.floor((remainingCount - 1) / PAGE_SIZE) * PAGE_SIZE;
       await load(filters, Math.min(offset, lastOffset));
-    } catch (error) { handleUnauthorized(error); setDeleteError(error.message); }
+    } catch (error: unknown) { handleUnauthorized(error); setDeleteError(errorMessage(error)); }
     finally { setDeleting(false); }
   }
-  function setFilter(key, value) {
-    const next = { ...filters, [key]: value };
+  function setFilter(key: keyof ExpenseFilters, value: string): void {
+    if (key === 'category' && value !== '' && !CATEGORIES.includes(value as Category)) return;
+    const next = { ...filters, [key]: value } as ExpenseFilters;
     setFilters(next);
     setOffset(0);
-    clearTimeout(searchTimer.current);
-    if (key === 'title') searchTimer.current = setTimeout(() => load(next, 0), 250);
+    cancelScheduledSearch();
+    if (key === 'title') searchTimer.current = setTimeout(() => { searchTimer.current = null; void load(next, 0); }, 250);
     else load(next, 0);
   }
-  function submitSearch(event) {
+  function submitSearch(event: FormEvent<HTMLFormElement>): void {
     event.preventDefault();
-    clearTimeout(searchTimer.current);
+    cancelScheduledSearch();
     setOffset(0);
     load(filters, 0);
   }
-  function clearFilters() {
-    clearTimeout(searchTimer.current);
+  function clearFilters(): void {
+    cancelScheduledSearch();
     const emptyFilters = { category: '', date_from: '', date_to: '', title: '' };
     setFilters(emptyFilters);
     setOffset(0);
@@ -229,7 +239,7 @@ export default function App() {
         })}</section>
 
         <section className="transactions" id="transactions"><div className="transactions-title"><div><h2>Recent transactions</h2><p>Your latest spending activity</p></div><button type="button" className="text-button" onClick={clearFilters}>Clear filters <X size={14}/></button></div>
-          <form className="filters" onSubmit={submitSearch}><label className="search-box"><Search size={17}/><input aria-label="Search by title" maxLength="160" placeholder="Search expenses..." value={filters.title} onChange={e => setFilter('title', e.target.value)}/></label><label className="filter-select"><Filter size={15}/><select aria-label="Filter by category" value={filters.category} onChange={e => setFilter('category', e.target.value)}><option value="">All categories</option>{CATEGORIES.map(c => <option key={c}>{c}</option>)}</select><ChevronDown size={14}/></label><label className="date-filter"><span>From</span><input aria-label="Start date" type="date" value={filters.date_from} max={filters.date_to || undefined} onChange={e => setFilter('date_from', e.target.value)}/></label><label className="date-filter"><span>To</span><input aria-label="End date" type="date" value={filters.date_to} min={filters.date_from || undefined} onChange={e => setFilter('date_to', e.target.value)}/></label><button className="filter-submit" aria-label="Apply filters"><SlidersHorizontal size={16}/></button></form>
+          <form className="filters" onSubmit={submitSearch}><label className="search-box"><Search size={17}/><input aria-label="Search by title" maxLength={160} placeholder="Search expenses..." value={filters.title} onChange={e => setFilter('title', e.target.value)}/></label><label className="filter-select"><Filter size={15}/><select aria-label="Filter by category" value={filters.category} onChange={e => setFilter('category', e.target.value)}><option value="">All categories</option>{CATEGORIES.map(c => <option key={c}>{c}</option>)}</select><ChevronDown size={14}/></label><label className="date-filter"><span>From</span><input aria-label="Start date" type="date" value={filters.date_from} max={filters.date_to || undefined} onChange={e => setFilter('date_from', e.target.value)}/></label><label className="date-filter"><span>To</span><input aria-label="End date" type="date" value={filters.date_to} min={filters.date_from || undefined} onChange={e => setFilter('date_to', e.target.value)}/></label><button className="filter-submit" aria-label="Apply filters"><SlidersHorizontal size={16}/></button></form>
           <ExpenseTable
             expenses={expenses}
             total={totalExpenses}

@@ -1,17 +1,27 @@
 import { useEffect } from 'react';
+import type { MouseEvent } from 'react';
 import { AlertTriangle, Trash2, X } from 'lucide-react';
-import { formatDate, formatMoney } from '../lib/format.js';
+import { formatDate, formatMoney } from '../lib/format';
+import type { Expense } from '../types';
 
-export default function ConfirmDeleteDialog({ expense, deleting, error, onCancel, onConfirm }) {
+interface ConfirmDeleteDialogProps {
+  expense: Expense;
+  deleting: boolean;
+  error: string;
+  onCancel: () => void;
+  onConfirm: () => void;
+}
+
+export default function ConfirmDeleteDialog({ expense, deleting, error, onCancel, onConfirm }: ConfirmDeleteDialogProps) {
   useEffect(() => {
-    function handleKeyDown(event) {
+    function handleKeyDown(event: KeyboardEvent) {
       if (event.key === 'Escape' && !deleting) onCancel();
     }
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [deleting, onCancel]);
 
-  return <div className="modal-backdrop confirm-backdrop" onMouseDown={event => {
+  return <div className="modal-backdrop confirm-backdrop" onMouseDown={(event: MouseEvent<HTMLDivElement>) => {
     if (event.target === event.currentTarget && !deleting) onCancel();
   }}>
     <section className="confirm-modal" role="alertdialog" aria-modal="true" aria-labelledby="delete-title" aria-describedby="delete-description">

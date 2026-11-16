@@ -1,11 +1,28 @@
 import { ArrowDownLeft, ChevronLeft, ChevronRight, Coffee, Plus } from 'lucide-react';
-import { CATEGORY_META } from './constants.js';
-import { formatDate, formatMoney } from '../../lib/format.js';
+import { CATEGORY_META } from './constants';
+import { formatDate, formatMoney } from '../../lib/format';
+import type { Expense } from '../../types';
+
+interface ExpenseTableProps {
+  expenses: Expense[];
+  total: number;
+  offset: number;
+  error: string;
+  hasLoaded: boolean;
+  loading: boolean;
+  hasFilters: boolean;
+  onAdd: () => void;
+  onEdit: (expense: Expense) => void;
+  onDelete: (expense: Expense) => void;
+  onRetry: () => void;
+  onPrevious: () => void;
+  onNext: () => void;
+}
 
 export default function ExpenseTable({
   expenses, total, offset, error, hasLoaded, loading, hasFilters,
   onAdd, onEdit, onDelete, onRetry, onPrevious, onNext,
-}) {
+}: ExpenseTableProps) {
   const firstRow = total === 0 ? 0 : offset + 1;
   const lastRow = Math.min(offset + expenses.length, total);
   const pageCount = Math.max(1, Math.ceil(total / 10));
@@ -15,9 +32,9 @@ export default function ExpenseTable({
     <div className="table-wrap"><table>
       <thead><tr><th>TRANSACTION</th><th>CATEGORY</th><th>DATE</th><th>NOTE</th><th className="amount-head">AMOUNT</th><th></th></tr></thead>
       <tbody>
-        {loading ? <tr><td className="state-cell" colSpan="6"><span className="spinner"/> Loading your expenses…</td></tr>
-          : error && !hasLoaded ? <tr><td className="state-cell" colSpan="6"><div className="empty-icon"><Coffee size={21}/></div><strong>Expenses couldn't be loaded</strong><span>Check the API and database, then try again.</span><button type="button" className="empty-add" onClick={onRetry}>Retry</button></td></tr>
-          : expenses.length === 0 ? <tr><td className="state-cell" colSpan="6">
+        {loading ? <tr><td className="state-cell" colSpan={6}><span className="spinner"/> Loading your expenses…</td></tr>
+          : error && !hasLoaded ? <tr><td className="state-cell" colSpan={6}><div className="empty-icon"><Coffee size={21}/></div><strong>Expenses couldn't be loaded</strong><span>Check the API and database, then try again.</span><button type="button" className="empty-add" onClick={onRetry}>Retry</button></td></tr>
+          : expenses.length === 0 ? <tr><td className="state-cell" colSpan={6}>
             <div className="empty-icon"><Coffee size={21}/></div><strong>No expenses found</strong>
             <span>{hasFilters ? 'Try changing your filters.' : 'Add your first expense to get started.'}</span>
             {!hasFilters && <button type="button" className="empty-add" onClick={onAdd}><Plus size={14}/> Add expense</button>}

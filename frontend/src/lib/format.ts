@@ -1,9 +1,9 @@
-export function localToday() {
+export function localToday(): string {
   const now = new Date();
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 }
 
-export function formatMoney(value) {
+export function formatMoney(value: number | string | null | undefined): string {
   const numericValue = Number(value);
   return new Intl.NumberFormat('en-IN', {
     style: 'currency',
@@ -12,7 +12,7 @@ export function formatMoney(value) {
   }).format(Number.isFinite(numericValue) ? numericValue : 0);
 }
 
-export function formatDate(value) {
+export function formatDate(value: string): string {
   // Use a local date constructor so ISO dates don't shift a day by timezone.
   const [year, month, day] = value.split('-').map(Number);
   return new Date(year, month - 1, day).toLocaleDateString('en-IN', {

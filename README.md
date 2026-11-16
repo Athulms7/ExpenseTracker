@@ -1,6 +1,6 @@
 # Spendly — Personal Expense Tracker
 
-A local expense tracker with a React + Vite frontend, a FastAPI JSON API, and PostgreSQL running in Docker Compose. Users can create accounts with a user ID and password; each account has private expenses. Deployment is not configured.
+A local expense tracker with a React + TypeScript + Vite frontend, a FastAPI JSON API, and PostgreSQL running in Docker Compose. Users can create accounts with a user ID and password; each account has private expenses. Deployment is not configured.
 
 ## Requirements
 
@@ -72,7 +72,7 @@ npm install
 npm run dev
 ```
 
-Open the local URL printed by Vite (normally [http://localhost:5173](http://localhost:5173)). The frontend uses port `8000` on the same host for its API. To override that, copy `frontend/.env.example` to `frontend/.env.local`, edit `VITE_API_URL`, and restart Vite. Keep API and database running while using the app.
+Open the local URL printed by Vite (normally [http://localhost:5173](http://localhost:5173)). The frontend uses port `8000` on the same host for its API. To override that, copy `frontend/.env.example` to `frontend/.env.local`, edit `VITE_API_URL`, and restart Vite. Keep API and database running while using the app. The frontend is TypeScript with strict compiler checks; `npm run build` runs `tsc --noEmit` before creating the Vite production bundle.
 
 ## What is implemented
 
@@ -109,7 +109,7 @@ Registration and login both accept `{"user_id":"alex_01","password":"your-passwo
 
 ## Data and stack choices
 
-- **React + Vite:** a small interactive UI with quick local startup and a straightforward build toolchain.
+- **React + TypeScript + Vite:** a small interactive UI with quick local startup and strict static checking for component props, API payloads, expense fields, and category values. TypeScript catches many UI/API contract mistakes before the app runs; runtime validation still belongs to the FastAPI/Pydantic boundary.
 - **FastAPI + Pydantic:** typed request validation and generated API docs make the contract easy to inspect. `pwdlib` hashes passwords with Argon2; PyJWT signs expiring session cookies.
 - **SQLAlchemy + PostgreSQL:** users and expenses are persisted relationally; expense ownership is enforced by the API, monetary values use `NUMERIC(12,2)`, dates use `DATE`, database constraints protect positive amounts, nonblank titles, and allowed categories, and category/date are indexed. Case-insensitive substring search is kept simple for this small dataset; a larger dataset could add a PostgreSQL trigram index. PostgreSQL is isolated in Docker; the API and Vite dev server run directly on the laptop.
 - **Adminer:** an optional-in-practice local web database viewer started with Compose at `http://localhost:8080`.
@@ -174,7 +174,10 @@ frontend/src/
   features/auth/    Login and account registration screen
   features/expenses/ Category metadata and expense table
   lib/              API client and date/currency formatting helpers
-  App.jsx           Dashboard composition and UI state
+  App.tsx           Dashboard composition and UI state
+  types.ts          Shared frontend data and form types
+  vite-env.d.ts     Vite environment type declarations
+  tsconfig.json     Strict TypeScript compiler configuration
 compose.yaml        Local PostgreSQL service and persistent volume
                     plus localhost-only Adminer database viewer
 ```

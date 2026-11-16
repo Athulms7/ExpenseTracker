@@ -1,8 +1,15 @@
 import { useState } from 'react';
 import { ArrowRight, LockKeyhole, Wallet } from 'lucide-react';
-import { apiRequest } from '../../lib/api.js';
+import { apiRequest, errorMessage } from '../../lib/api';
+import type { FormEvent } from 'react';
+import type { User } from '../../types';
 
-export default function AuthScreen({ initialError = '', onAuthenticated }) {
+interface AuthScreenProps {
+  initialError?: string;
+  onAuthenticated: (user: User) => void;
+}
+
+export default function AuthScreen({ initialError = '', onAuthenticated }: AuthScreenProps) {
   const [mode, setMode] = useState('login');
   const [userId, setUserId] = useState('');
   const [password, setPassword] = useState('');
@@ -10,19 +17,19 @@ export default function AuthScreen({ initialError = '', onAuthenticated }) {
   const [submitting, setSubmitting] = useState(false);
   const registering = mode === 'register';
 
-  async function submit(event) {
+  async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError('');
     setSubmitting(true);
     try {
-      const user = await apiRequest(`/api/auth/${mode}`, {
+      const user = await apiRequest<User>(`/api/auth/${mode}`, {
         method: 'POST',
         body: JSON.stringify({ user_id: userId, password }),
       });
       setPassword('');
       onAuthenticated(user);
-    } catch (requestError) {
-      setError(requestError.message);
+    } catch (requestError: unknown) {
+      setError(errorMessage(requestError));
     } finally {
       setSubmitting(false);
     }
@@ -42,8 +49,8 @@ export default function AuthScreen({ initialError = '', onAuthenticated }) {
           <input
             autoComplete="username"
             autoFocus
-            minLength="3"
-            maxLength="32"
+            minLength={3}
+            maxLength={32}
             pattern="[A-Za-z0-9_-]+"
             placeholder="e.g. alex_01"
             required
@@ -56,7 +63,7 @@ export default function AuthScreen({ initialError = '', onAuthenticated }) {
           <input
             autoComplete={registering ? 'new-password' : 'current-password'}
             minLength={registering ? 8 : 1}
-            maxLength="128"
+            maxLength={128}
             type="password"
             required
             value={password}
