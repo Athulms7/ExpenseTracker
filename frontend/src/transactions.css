@@ -30,7 +30,15 @@
 .delete-confirm-button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; padding: 9px 13px; border: 0; border-radius: 7px; background: #b84e4e; color: #fff; font-size: 11px; font-weight: 700; }
 .delete-confirm-button:hover { background: #a33f3f; }
 .delete-confirm-button:disabled { opacity: .65; cursor: wait; }
+.pagination-controls { display: flex; align-items: center; gap: 7px; color: #929da6; }
+.pagination-controls button { display: inline-flex; align-items: center; gap: 3px; padding: 5px 7px; border: 1px solid #e6eaed; border-radius: 5px; background: #fff; color: #5e7968; font-size: 9px; font-weight: 600; }
+.pagination-controls button:hover:not(:disabled) { background: #f1f7f2; border-color: #bcd0c1; }
+.pagination-controls button:disabled { opacity: .45; cursor: not-allowed; }
+.sort-label { display: flex; align-items: center; gap: 4px; }
 @media (max-width: 760px) {
   .transactions table { min-width: 790px; }
+  .table-footer { height: auto; min-height: 50px; flex-wrap: wrap; gap: 8px; padding: 8px 12px; }
+  .pagination-controls { margin-left: auto; }
+  .sort-label { display: none !important; }
   .confirm-modal { padding: 23px; }
 }

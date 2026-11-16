@@ -1,6 +1,6 @@
 from datetime import date
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from .. import models
@@ -14,24 +14,36 @@ def list_for_user(
     date_from: date | None = None,
     date_to: date | None = None,
     title: str | None = None,
-) -> list[models.Expense]:
-    """Return a user's expenses with optional filters, newest date first."""
-    statement = select(models.Expense).where(models.Expense.user_id == user_id)
+    limit: int = 10,
+    offset: int = 0,
+) -> tuple[list[models.Expense], int]:
+    """Return a filtered page and matching row count, newest date first."""
+    conditions = [models.Expense.user_id == user_id]
 
     if category:
-        statement = statement.where(models.Expense.category == category)
+        conditions.append(models.Expense.category == category)
     if date_from:
-        statement = statement.where(models.Expense.date >= date_from)
+        conditions.append(models.Expense.date >= date_from)
     if date_to:
-        statement = statement.where(models.Expense.date <= date_to)
+        conditions.append(models.Expense.date <= date_to)
     if title and title.strip():
         escaped_title = _escape_like_text(title.strip())
-        statement = statement.where(
+        conditions.append(
             models.Expense.title.ilike(f"%{escaped_title}%", escape="\\")
         )
 
-    statement = statement.order_by(models.Expense.date.desc(), models.Expense.id.desc())
-    return list(db.scalars(statement).all())
+    total_statement = select(func.count(models.Expense.id)).where(*conditions)
+    total = db.scalar(total_statement) or 0
+
+    page_statement = (
+        select(models.Expense)
+        .where(*conditions)
+        .order_by(models.Expense.date.desc(), models.Expense.id.desc())
+        .limit(limit)
+        .offset(offset)
+    )
+    items = list(db.scalars(page_statement).all())
+    return items, total
 
 
 def get_for_user(db: Session, expense_id: int, user_id: int) -> models.Expense | None:

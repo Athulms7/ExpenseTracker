@@ -1,8 +1,16 @@
-import { ArrowDownLeft, Coffee, Plus } from 'lucide-react';
+import { ArrowDownLeft, ChevronLeft, ChevronRight, Coffee, Plus } from 'lucide-react';
 import { CATEGORY_META } from './constants.js';
 import { formatDate, formatMoney } from '../../lib/format.js';
 
-export default function ExpenseTable({ expenses, error, hasLoaded, loading, hasFilters, onAdd, onEdit, onDelete, onRetry }) {
+export default function ExpenseTable({
+  expenses, total, offset, error, hasLoaded, loading, hasFilters,
+  onAdd, onEdit, onDelete, onRetry, onPrevious, onNext,
+}) {
+  const firstRow = total === 0 ? 0 : offset + 1;
+  const lastRow = Math.min(offset + expenses.length, total);
+  const pageCount = Math.max(1, Math.ceil(total / 10));
+  const currentPage = Math.min(pageCount, Math.floor(offset / 10) + 1);
+
   return <>
     <div className="table-wrap"><table>
       <thead><tr><th>TRANSACTION</th><th>CATEGORY</th><th>DATE</th><th>NOTE</th><th className="amount-head">AMOUNT</th><th></th></tr></thead>
@@ -28,6 +36,14 @@ export default function ExpenseTable({ expenses, error, hasLoaded, loading, hasF
           })}
       </tbody>
     </table></div>
-    <div className="table-footer"><span>Showing <b>{expenses.length}</b> {expenses.length === 1 ? 'transaction' : 'transactions'}</span><span>Sorted by newest first <ArrowDownLeft size={14}/></span></div>
+    <div className="table-footer">
+      <span>Showing <b>{firstRow}–{lastRow}</b> of <b>{total}</b> transactions</span>
+      <div className="pagination-controls">
+        <span>Page {currentPage} of {pageCount}</span>
+        <button type="button" onClick={onPrevious} disabled={loading || offset === 0} aria-label="Previous page"><ChevronLeft size={15}/> Previous</button>
+        <button type="button" onClick={onNext} disabled={loading || offset + expenses.length >= total} aria-label="Next page">Next <ChevronRight size={15}/></button>
+      </div>
+      <span className="sort-label">Newest first <ArrowDownLeft size={14}/></span>
+    </div>
   </>;
 }

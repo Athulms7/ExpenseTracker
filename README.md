@@ -79,7 +79,7 @@ Open the local URL printed by Vite (normally [http://localhost:5173](http://loca
 - Create expenses with title, positive amount, category, date, and optional note.
 - Register with a user ID and password, log in, and log out. User IDs are case-insensitive and use 3–32 letters, numbers, underscores, or hyphens; passwords require at least 8 characters.
 - Each expense and monthly total is scoped to the signed-in account. Passwords are Argon2 hashed; sessions use a signed, HTTP-only cookie that expires after 12 hours.
-- List expenses newest date first; edit and delete individual entries.
+- List expenses newest date first, 10 at a time with Previous/Next navigation; edit and delete individual entries. Pagination applies only to the visible list; monthly totals still aggregate all matching account expenses for that month.
 - Show the current month's total and transaction count, daily average, top category, and totals for each category.
 - Filter the list by category, inclusive date range, and case-insensitive partial title match. Title search updates as you type with a short debounce. Combining filters narrows results. Invalid reversed date ranges and invalid categories return a validation error. Title search treats `%` and `_` as ordinary characters.
 - Handle loading, empty, API error, and form validation states. The API trims titles and notes, rejects blank titles, unknown categories, non-positive amounts, and malformed fields. Network failures, database unavailability, and invalid form data produce readable messages.
@@ -97,7 +97,7 @@ Authentication and expense requests use JSON; successful logout and delete retur
 | `POST` | `/api/auth/login` | Log in and start a session |
 | `POST` | `/api/auth/logout` | End the browser session |
 | `GET` | `/api/auth/me` | Return the signed-in account |
-| `GET` | `/api/expenses` | List, newest date first; optional `category`, `date_from`, `date_to`, and `title` query parameters |
+| `GET` | `/api/expenses` | List newest first in pages; optional `category`, `date_from`, `date_to`, `title`, `limit` (default 10, max 100), and `offset` (default 0) query parameters. Returns `items`, `total`, `limit`, and `offset`. |
 | `POST` | `/api/expenses` | Create an expense |
 | `PUT` | `/api/expenses/{id}` | Replace an expense's editable fields |
 | `DELETE` | `/api/expenses/{id}` | Delete an expense |
@@ -142,10 +142,16 @@ Then start it again with `docker compose up -d db`.
 - The first account registered after this update automatically receives any existing expenses that had no owner. New accounts only see their own expenses; other accounts cannot read, edit, or delete them.
 - No deployment configuration or automated test suite.
 - The API creates tables at startup and applies the current ownership-column upgrade for this local app. A production system should use versioned migrations (for example Alembic), managed secrets, and stronger operational checks.
-- No pagination or export: the list loads all matching rows, suitable for the expected small personal dataset.
+- The transaction view fetches 10 rows at a time; there is no export or jump-to-page control. API callers can request up to 100 rows per page.
 - INR is fixed in the UI; there is no configurable currency or locale preference. The database stores a decimal amount without a currency column.
 - Deletion uses an in-app confirmation dialog. There is no undo or restore flow.
 - If the database is unavailable at API startup, the API retries its connection for up to 30 seconds. Database failures after startup return HTTP 503; restart PostgreSQL and retry the request.
+
+## Potential improvements
+
+- Add an AI support assistant that can explain the app and answer questions about the signed-in user's own spending history. Keep all queries scoped to that user, and require explicit confirmation before any assistant-triggered changes to expense data. This is a future idea; no AI provider or assistant is currently integrated.
+- Add password recovery, email verification, login rate limiting, and server-side session revocation before making account registration public.
+- Add automated tests, versioned migrations, pagination jump controls, and data export as the app grows.
 
 ## Repository layout
 

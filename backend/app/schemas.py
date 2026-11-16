@@ -37,6 +37,13 @@ class ExpenseOut(ExpenseInput):
     id: int
 
 
+class ExpensePage(BaseModel):
+    items: list[ExpenseOut]
+    total: int
+    limit: int
+    offset: int
+
+
 class CategoryTotal(BaseModel):
     category: Category
     total: Decimal

@@ -11,12 +11,15 @@ import { formatMoney, localToday } from './lib/format.js';
 const emptyForm = () => ({ title: '', amount: '', category: 'Food', date: localToday(), note: '' });
 const money = formatMoney;
 const noFilters = () => ({ category: '', date_from: '', date_to: '', title: '' });
+const PAGE_SIZE = 10;
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [authReady, setAuthReady] = useState(false);
   const [authError, setAuthError] = useState('');
   const [expenses, setExpenses] = useState([]);
+  const [totalExpenses, setTotalExpenses] = useState(0);
+  const [offset, setOffset] = useState(0);
   const [summary, setSummary] = useState({ total: 0, count: 0, categories: [] });
   const [filters, setFilters] = useState({ category: '', date_from: '', date_to: '', title: '' });
   const [loading, setLoading] = useState(true);
@@ -36,17 +39,32 @@ export default function App() {
 
   const monthName = useMemo(() => new Date().toLocaleDateString('en-IN', { month: 'long', year: 'numeric' }), []);
   const dayOfMonth = new Date().getDate();
-  const load = useCallback(async activeFilters => {
+  const load = useCallback(async (activeFilters, requestedOffset = 0) => {
     const loadId = ++latestLoad.current;
     setLoading(true);
     try {
       const params = new URLSearchParams(Object.entries(activeFilters).filter(([, value]) => value));
-      const [list, totals] = await Promise.all([
-        apiRequest(`/api/expenses${params.size ? `?${params}` : ''}`),
+      params.set('limit', String(PAGE_SIZE));
+      params.set('offset', String(requestedOffset));
+      const [initialPage, totals] = await Promise.all([
+        apiRequest(`/api/expenses?${params}`),
         apiRequest('/api/summary/monthly'),
       ]);
       if (loadId !== latestLoad.current) return;
-      setExpenses(list);
+
+      // If another client removed rows while this page was open, move to the
+      // last page that still exists instead of showing a misleading empty page.
+      let page = initialPage;
+      if (page.total > 0 && requestedOffset >= page.total) {
+        const lastOffset = Math.floor((page.total - 1) / page.limit) * page.limit;
+        params.set('offset', String(lastOffset));
+        page = await apiRequest(`/api/expenses?${params}`);
+        if (loadId !== latestLoad.current) return;
+      }
+
+      setExpenses(page.items);
+      setTotalExpenses(page.total);
+      setOffset(page.total === 0 ? 0 : page.offset);
       setSummary(totals);
       setHasLoaded(true);
       setLoadError('');
@@ -55,6 +73,8 @@ export default function App() {
       if (loadId === latestLoad.current) {
         handleUnauthorized(error);
         setExpenses([]);
+        setTotalExpenses(0);
+        setOffset(error.status === 401 ? 0 : requestedOffset);
         setHasLoaded(false);
         setLoadError(error.message);
         setNotice(error.message);
@@ -79,7 +99,9 @@ export default function App() {
       setHasLoaded(false);
       setLoadError('');
       setNotice('');
-      load(defaults);
+      setOffset(0);
+      setTotalExpenses(0);
+      load(defaults, 0);
     }
   }, [load, currentUser?.id]);
   useEffect(() => () => clearTimeout(searchTimer.current), []);
@@ -92,6 +114,8 @@ export default function App() {
       setAuthError('Your session has expired. Please log in again.');
       setFilters(noFilters());
       setExpenses([]);
+      setTotalExpenses(0);
+      setOffset(0);
       setSummary({ total: 0, count: 0, categories: [] });
       setConfirmExpense(null);
       setModal(false);
@@ -106,6 +130,8 @@ export default function App() {
       setAuthError('');
       setFilters(noFilters());
       setExpenses([]);
+      setTotalExpenses(0);
+      setOffset(0);
       setSummary({ total: 0, count: 0, categories: [] });
       setNotice('');
     } catch (error) { setNotice(error.message); }
@@ -128,7 +154,7 @@ export default function App() {
         body: JSON.stringify({ ...form, note: form.note || null }),
       });
       setModal(false);
-      await load(filters);
+      await load(filters, 0);
     } catch (error) { handleUnauthorized(error); setFormError(error.message); }
     finally { setSaving(false); }
   }
@@ -139,27 +165,34 @@ export default function App() {
     try {
       await apiRequest(`/api/expenses/${confirmExpense.id}`, { method: 'DELETE' });
       setConfirmExpense(null);
-      await load(filters);
+      const remainingCount = Math.max(0, totalExpenses - 1);
+      const lastOffset = remainingCount === 0
+        ? 0
+        : Math.floor((remainingCount - 1) / PAGE_SIZE) * PAGE_SIZE;
+      await load(filters, Math.min(offset, lastOffset));
     } catch (error) { handleUnauthorized(error); setDeleteError(error.message); }
     finally { setDeleting(false); }
   }
   function setFilter(key, value) {
     const next = { ...filters, [key]: value };
     setFilters(next);
+    setOffset(0);
     clearTimeout(searchTimer.current);
-    if (key === 'title') searchTimer.current = setTimeout(() => load(next), 250);
-    else load(next);
+    if (key === 'title') searchTimer.current = setTimeout(() => load(next, 0), 250);
+    else load(next, 0);
   }
   function submitSearch(event) {
     event.preventDefault();
     clearTimeout(searchTimer.current);
-    load(filters);
+    setOffset(0);
+    load(filters, 0);
   }
   function clearFilters() {
     clearTimeout(searchTimer.current);
     const emptyFilters = { category: '', date_from: '', date_to: '', title: '' };
     setFilters(emptyFilters);
-    load(emptyFilters);
+    setOffset(0);
+    load(emptyFilters, 0);
   }
 
   const monthCategories = [...summary.categories].sort((a, b) => Number(b.total) - Number(a.total));
@@ -199,6 +232,8 @@ export default function App() {
           <form className="filters" onSubmit={submitSearch}><label className="search-box"><Search size={17}/><input aria-label="Search by title" maxLength="160" placeholder="Search expenses..." value={filters.title} onChange={e => setFilter('title', e.target.value)}/></label><label className="filter-select"><Filter size={15}/><select aria-label="Filter by category" value={filters.category} onChange={e => setFilter('category', e.target.value)}><option value="">All categories</option>{CATEGORIES.map(c => <option key={c}>{c}</option>)}</select><ChevronDown size={14}/></label><label className="date-filter"><span>From</span><input aria-label="Start date" type="date" value={filters.date_from} max={filters.date_to || undefined} onChange={e => setFilter('date_from', e.target.value)}/></label><label className="date-filter"><span>To</span><input aria-label="End date" type="date" value={filters.date_to} min={filters.date_from || undefined} onChange={e => setFilter('date_to', e.target.value)}/></label><button className="filter-submit" aria-label="Apply filters"><SlidersHorizontal size={16}/></button></form>
           <ExpenseTable
             expenses={expenses}
+            total={totalExpenses}
+            offset={offset}
             error={loadError}
             hasLoaded={hasLoaded}
             loading={loading}
@@ -206,7 +241,9 @@ export default function App() {
             onAdd={openAdd}
             onEdit={openEdit}
             onDelete={expense => { setDeleteError(''); setConfirmExpense(expense); }}
-            onRetry={() => load(filters)}
+            onRetry={() => load(filters, offset)}
+            onPrevious={() => load(filters, Math.max(0, offset - PAGE_SIZE))}
+            onNext={() => load(filters, offset + PAGE_SIZE)}
           />
         </section>
         <footer className="footer"><span>Spendly <i>·</i> A clearer view of your everyday spending</span><span>Made for your financial wellbeing <span className="heart">♥</span></span></footer>

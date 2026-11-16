@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from .. import models
 from ..repositories import expenses as expense_repository
-from ..schemas import ExpenseInput
+from ..schemas import ExpenseInput, ExpensePage
 
 
 class ExpenseNotFound(Exception):
@@ -24,17 +24,22 @@ def list_expenses(
     date_from: date | None,
     date_to: date | None,
     title: str | None,
-) -> list[models.Expense]:
+    limit: int,
+    offset: int,
+) -> ExpensePage:
     if date_from and date_to and date_from > date_to:
         raise InvalidDateRange("date_from must be on or before date_to")
-    return expense_repository.list_for_user(
+    items, total = expense_repository.list_for_user(
         db,
         user_id,
         category=category,
         date_from=date_from,
         date_to=date_to,
         title=title,
+        limit=limit,
+        offset=offset,
     )
+    return ExpensePage(items=items, total=total, limit=limit, offset=offset)
 
 
 def create_expense(db: Session, user_id: int, payload: ExpenseInput) -> models.Expense:

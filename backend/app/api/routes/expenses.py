@@ -5,19 +5,21 @@ from sqlalchemy.orm import Session
 
 from ... import models
 from ...database import get_db
-from ...schemas import Category, ExpenseInput, ExpenseOut
+from ...schemas import Category, ExpenseInput, ExpenseOut, ExpensePage
 from ...services import expenses as expense_service
 from ..dependencies import get_current_user
 
 router = APIRouter(prefix="/api/expenses", tags=["expenses"])
 
 
-@router.get("", response_model=list[ExpenseOut])
+@router.get("", response_model=ExpensePage)
 def list_expenses(
     category: Category | None = None,
     date_from: date | None = None,
     date_to: date | None = None,
     title: str | None = Query(default=None, max_length=160),
+    limit: int = Query(default=10, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -29,6 +31,8 @@ def list_expenses(
             date_from=date_from,
             date_to=date_to,
             title=title,
+            limit=limit,
+            offset=offset,
         )
     except expense_service.InvalidDateRange as error:
         raise HTTPException(status_code=422, detail=str(error)) from error
