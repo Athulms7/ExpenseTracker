@@ -1,0 +1,36 @@
+/* Keep transaction details easy to scan without requiring row hover. */
+.transactions table { min-width: 790px; }
+.transactions th { font-size: 9px; height: 40px; }
+.transactions td { height: 68px; padding-left: 14px; padding-right: 14px; font-size: 12px; }
+.transactions tbody tr:nth-child(even) { background: #fcfdfd; }
+.transactions tbody tr:hover { background: #f5f9f6; }
+.transaction-icon { width: 36px; height: 36px; margin-right: 11px; }
+.transaction-name { height: 40px; }
+.transaction-name strong { font-size: 12px; max-width: 200px; }
+.transaction-name span { font-size: 9px; }
+.category-tag { font-size: 10px; padding: 5px 8px; }
+.date-cell, .note-cell { font-size: 11px; }
+.note-cell { max-width: 220px; }
+.amount-cell { font-size: 12px; }
+.row-actions { opacity: 1; min-width: 100px; }
+.row-actions button { font-size: 10px; padding: 6px; }
+.row-actions button:focus-visible, .row-actions button:hover { text-decoration: underline; }
+.confirm-modal { position: relative; width: min(100%, 430px); padding: 28px; border-radius: 13px; background: #fff; box-shadow: 0 22px 70px #192b3740; }
+.confirm-icon { display: grid; place-items: center; width: 42px; height: 42px; border-radius: 11px; color: #b35555; background: #fff0ee; }
+.confirm-close { position: absolute; top: 20px; right: 20px; }
+.confirm-modal h2 { margin: 18px 0 6px; color: #2c3947; font: 700 19px Manrope, sans-serif; }
+.confirm-modal > p { margin: 0; color: #84909a; font-size: 12px; line-height: 1.6; }
+.confirm-expense { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 20px; padding: 13px; border: 1px solid #edf0f2; border-radius: 8px; background: #fafbfc; }
+.confirm-expense strong, .confirm-expense span { display: block; }
+.confirm-expense strong { color: #43515d; font-size: 12px; overflow-wrap: anywhere; }
+.confirm-expense span { margin-top: 4px; color: #929da6; font-size: 10px; }
+.confirm-expense > b { color: #34444c; font-size: 12px; white-space: nowrap; }
+.confirm-error { margin: 14px 0 0; font-size: 11px; }
+.confirm-actions { display: flex; justify-content: flex-end; gap: 9px; margin-top: 22px; padding-top: 16px; border-top: 1px solid #eef0f2; }
+.delete-confirm-button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; padding: 9px 13px; border: 0; border-radius: 7px; background: #b84e4e; color: #fff; font-size: 11px; font-weight: 700; }
+.delete-confirm-button:hover { background: #a33f3f; }
+.delete-confirm-button:disabled { opacity: .65; cursor: wait; }
+@media (max-width: 760px) {
+  .transactions table { min-width: 790px; }
+  .confirm-modal { padding: 23px; }
+}

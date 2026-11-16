@@ -1,0 +1,22 @@
+.auth-page { min-height: 100vh; display: grid; place-items: center; padding: 24px; background: radial-gradient(circle at 15% 15%, #e9f2eb 0, transparent 36%), #f5f7fa; }
+.auth-card { width: min(100%, 430px); padding: 38px; border: 1px solid #e8edf0; border-radius: 15px; background: #fff; box-shadow: 0 18px 55px #23384a0e; }
+.auth-brand { padding: 0; margin-bottom: 40px; }
+.auth-eyebrow { display: flex; align-items: center; gap: 7px; color: #72927f; font-size: 9px; font-weight: 700; letter-spacing: 1.2px; }
+.auth-card h1 { margin: 11px 0 6px; color: #273545; font: 700 25px Manrope, sans-serif; letter-spacing: -.6px; }
+.auth-subtitle { margin: 0; color: #8c97a1; font-size: 12px; line-height: 1.6; }
+.auth-form { display: grid; gap: 17px; margin-top: 27px; }
+.auth-form label { display: grid; gap: 7px; color: #53616d; font-size: 11px; font-weight: 600; }
+.auth-form input { width: 100%; height: 42px; border: 1px solid #e1e7e9; border-radius: 7px; padding: 0 11px; outline: none; color: #33414d; font-size: 12px; }
+.auth-form input:focus { border-color: #80a98e; box-shadow: 0 0 0 3px #e8f2eb; }
+.auth-form label small { color: #9ba5ad; font-size: 10px; font-weight: 400; }
+.auth-submit { display: flex; justify-content: center; align-items: center; gap: 9px; height: 43px; margin-top: 4px; border: 0; border-radius: 7px; background: #347557; color: #fff; font-size: 12px; font-weight: 700; }
+.auth-submit:hover { background: #286849; }
+.auth-submit:disabled { opacity: .65; cursor: wait; }
+.auth-error { margin-top: 18px; padding: 10px 12px; border: 1px solid #efd1ce; border-radius: 7px; background: #fff7f6; color: #a34f4b; font-size: 11px; line-height: 1.5; overflow-wrap: anywhere; }
+.auth-switch { display: flex; justify-content: center; gap: 5px; margin-top: 21px; color: #8c97a1; font-size: 11px; }
+.auth-switch button { padding: 0; border: 0; background: none; color: #347557; font-size: inherit; font-weight: 700; }
+.auth-privacy { margin: 24px 0 0; padding-top: 15px; border-top: 1px solid #eef0f2; color: #a0a9b1; text-align: center; font-size: 9px; }
+.auth-loading { min-height: 100vh; display: grid; place-items: center; color: #75838d; font-size: 12px; }
+.logout-button { border: 0; background: transparent; color: #7d8993; font-size: 11px; }
+.logout-button:hover { color: #b34e4e; }
+@media (max-width: 480px) { .auth-card { padding: 27px 22px; } .auth-brand { margin-bottom: 32px; } }
