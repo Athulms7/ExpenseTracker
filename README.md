@@ -62,7 +62,7 @@ Copy the template only the first time. It contains a placeholder `JWT_SECRET_KEY
 
 The backend reads `DATABASE_URL` and `JWT_SECRET_KEY` from `backend/.env`. That local file is ignored by Git. When deploying, provide these as process/container environment variables through the hosting platform's secret manager; process environment values override the local `.env` file. Set `COOKIE_SECURE=true` for HTTPS, and set `APP_ORIGINS` to the exact frontend and backend origins. Never commit real credentials.
 
-The API waits for PostgreSQL at startup, creates missing tables, and adds the ownership column to an existing expenses table without deleting its rows. Interactive API documentation is at [http://localhost:8000/docs](http://localhost:8000/docs). Liveness check: [http://localhost:8000/api/health](http://localhost:8000/api/health); database readiness check: [http://localhost:8000/api/health/ready](http://localhost:8000/api/health/ready).
+The API waits for PostgreSQL at startup, creates missing tables, and applies local schema upgrades for expense ownership and allowed categories without deleting expense rows. Interactive API documentation is at [http://localhost:8000/docs](http://localhost:8000/docs). Liveness check: [http://localhost:8000/api/health](http://localhost:8000/api/health); database readiness check: [http://localhost:8000/api/health/ready](http://localhost:8000/api/health/ready).
 
 ### 3. Start the frontend
 
@@ -103,7 +103,7 @@ Authentication and expense requests use JSON; successful logout and delete retur
 | `DELETE` | `/api/expenses/{id}` | Delete an expense |
 | `GET` | `/api/summary/monthly` | Current-month summary; optional `year` and `month` parameters |
 
-Allowed categories: `Food`, `Transport`, `Shopping`, `Bills`, `Entertainment`, `Other`. Dates use ISO format (`YYYY-MM-DD`). Amounts are positive decimals with at most two fractional digits. See `/docs` for request and response schemas.
+Allowed categories: `Food`, `Transport`, `Shopping`, `Bills`, `Entertainment`, `Health`, `Other`. Dates use ISO format (`YYYY-MM-DD`). Amounts are positive decimals with at most two fractional digits. See `/docs` for request and response schemas.
 
 Registration and login both accept `{"user_id":"alex_01","password":"your-password"}`. On success, the API sets an HTTP-only cookie; the frontend does not store the session token in local storage.
 

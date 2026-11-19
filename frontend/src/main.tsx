@@ -4,5 +4,9 @@ import App from './App';
 import './styles.css';
 import './transactions.css';
 import './auth.css';
+import './theme.css';
 
-createRoot(document.getElementById('root')).render(<React.StrictMode><App /></React.StrictMode>);
+const rootElement = document.getElementById('root');
+if (!rootElement) throw new Error('The app root element was not found.');
+
+createRoot(rootElement).render(<React.StrictMode><App /></React.StrictMode>);

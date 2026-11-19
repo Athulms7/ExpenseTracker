@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
-import { ArrowDownLeft, ArrowUpRight, CalendarDays, ChevronDown, CircleHelp, CreditCard, Ellipsis, Filter, LayoutDashboard, Plus, Search, SlidersHorizontal, Sparkles, Wallet, X } from 'lucide-react';
+import { ArrowDownLeft, ArrowUpRight, CalendarDays, ChevronDown, CircleHelp, CreditCard, Ellipsis, Filter, LayoutDashboard, Moon, Plus, Search, SlidersHorizontal, Sparkles, Sun, Wallet, X } from 'lucide-react';
 import ExpenseForm from './components/ExpenseForm';
 import ConfirmDeleteDialog from './components/ConfirmDeleteDialog';
 import AuthScreen from './features/auth/AuthScreen';
@@ -18,6 +18,10 @@ const PAGE_SIZE = 10;
 export default function App() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [authReady, setAuthReady] = useState(false);
+  const [darkMode, setDarkMode] = useState<boolean>(() => {
+    try { return window.localStorage.getItem('spendly-theme') === 'dark'; }
+    catch { return false; }
+  });
   const [authError, setAuthError] = useState('');
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [totalExpenses, setTotalExpenses] = useState(0);
@@ -38,6 +42,12 @@ export default function App() {
   const [saving, setSaving] = useState(false);
   const latestLoad = useRef(0);
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = darkMode ? 'dark' : 'light';
+    try { window.localStorage.setItem('spendly-theme', darkMode ? 'dark' : 'light'); }
+    catch { /* The theme still works for this session when storage is unavailable. */ }
+  }, [darkMode]);
 
   const monthName = useMemo(() => new Date().toLocaleDateString('en-IN', { month: 'long', year: 'numeric' }), []);
   const dayOfMonth = new Date().getDate();
@@ -149,7 +159,7 @@ export default function App() {
   function openAdd(): void { setEditing(null); setForm(emptyForm()); setFormError(''); setModal(true); }
   function openEdit(expense: Expense): void {
     setEditing(expense.id);
-    setForm({ title: expense.title, amount: expense.amount, category: expense.category, date: expense.date, note: expense.note || '' });
+    setForm({ title: expense.title, amount: String(expense.amount), category: expense.category, date: expense.date, note: expense.note || '' });
     setFormError('');
     setModal(true);
   }
@@ -199,7 +209,7 @@ export default function App() {
   }
   function clearFilters(): void {
     cancelScheduledSearch();
-    const emptyFilters = { category: '', date_from: '', date_to: '', title: '' };
+    const emptyFilters = noFilters();
     setFilters(emptyFilters);
     setOffset(0);
     load(emptyFilters, 0);
@@ -220,7 +230,7 @@ export default function App() {
     </aside>
 
     <main className="main" id="top">
-      <header className="topbar"><div className="breadcrumbs">Workspace <span>/</span> <b>Overview</b></div><div className="top-actions"><span className="today-label"><CalendarDays size={15} />{new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</span><span className="signed-in-user">{currentUser.username}</span><button className="logout-button" onClick={logout}>Log out</button></div></header>
+      <header className="topbar"><div className="breadcrumbs">Workspace <span>/</span> <b>Overview</b></div><div className="top-actions"><span className="today-label"><CalendarDays size={15} />{new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</span><span className="signed-in-user">{currentUser.username}</span><button type="button" className="theme-toggle" onClick={() => setDarkMode(value => !value)} aria-label={darkMode ? 'Switch to light mode' : 'Switch to dark mode'} aria-pressed={darkMode} title={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}>{darkMode ? <Sun size={16} /> : <Moon size={16} />}<span>{darkMode ? 'Light' : 'Dark'}</span></button><button className="logout-button" onClick={logout}>Log out</button></div></header>
       <section className="content" id="dashboard">
         <div className="welcome-row"><div><div className="eyebrow"><span className="eyebrow-line" /> YOUR FINANCES AT A GLANCE</div><h1>Good day, <span>let's take a look.</span></h1><p className="subtitle">Here's what's happening with your money.</p></div><button className="primary-button" onClick={openAdd}><Plus size={17} /> Add expense</button></div>
 

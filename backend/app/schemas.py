@@ -5,7 +5,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field, SecretStr, field_validator
 
 
-Category = Literal["Food", "Transport", "Shopping", "Bills", "Entertainment", "Other"]
+Category = Literal["Food", "Transport", "Shopping", "Bills", "Entertainment", "Health", "Other"]
 
 
 class ExpenseInput(BaseModel):

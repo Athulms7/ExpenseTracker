@@ -4,6 +4,7 @@ export const EXPENSE_CATEGORIES = [
   'Shopping',
   'Bills',
   'Entertainment',
+  'Health',
   'Other',
 ] as const;
 

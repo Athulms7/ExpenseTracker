@@ -20,7 +20,7 @@ class Expense(Base):
     __table_args__ = (
         CheckConstraint("amount > 0", name="ck_expenses_amount_positive"),
         CheckConstraint(
-            "category IN ('Food', 'Transport', 'Shopping', 'Bills', 'Entertainment', 'Other')",
+            "category IN ('Food', 'Transport', 'Shopping', 'Bills', 'Entertainment', 'Health', 'Other')",
             name="ck_expenses_category_allowed",
         ),
         CheckConstraint("length(trim(title)) > 0", name="ck_expenses_title_nonblank"),
